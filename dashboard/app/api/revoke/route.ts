@@ -11,7 +11,7 @@ import { isAdminRequest } from "@/lib/admin-auth";
 // The live "wow moment" button. Credentials never touch the browser -- this
 // route runs the agent-auth-update grant-clearing call server-side.
 export async function POST(request: NextRequest) {
-  if (!isAdminRequest(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isAdminRequest(request, { mutating: true })) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     await revokeAgent();
     return NextResponse.json({ revoked: true });

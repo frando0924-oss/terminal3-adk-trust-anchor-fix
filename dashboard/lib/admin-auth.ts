@@ -7,12 +7,32 @@ function sameSecret(expected: string, supplied: string): boolean {
   return expectedBytes.length === suppliedBytes.length && timingSafeEqual(expectedBytes, suppliedBytes);
 }
 
-export function isAdminRequest(request: NextRequest): boolean {
+export function isAdminToken(supplied: string | undefined): boolean {
   const expected = process.env.DASHBOARD_ADMIN_TOKEN;
-  if (!expected) return false;
+  return Boolean(expected && supplied && sameSecret(expected, supplied));
+}
+
+function isSameOriginRequest(request: NextRequest): boolean {
+  const origin = request.headers.get("origin");
+  if (origin) return origin === request.nextUrl.origin;
+
+  const referer = request.headers.get("referer");
+  if (!referer) return false;
+  try {
+    return new URL(referer).origin === request.nextUrl.origin;
+  } catch {
+    return false;
+  }
+}
+
+export function isAdminRequest(request: NextRequest, options: { mutating?: boolean } = {}): boolean {
   const bearer = request.headers.get("authorization");
-  const supplied = bearer?.startsWith("Bearer ")
+  const headerToken = bearer?.startsWith("Bearer ")
     ? bearer.slice("Bearer ".length)
-    : request.headers.get("x-dashboard-admin-token") ?? request.cookies.get("dashboard_admin_token")?.value;
-  return supplied ? sameSecret(expected, supplied) : false;
+    : request.headers.get("x-dashboard-admin-token");
+  if (headerToken) return isAdminToken(headerToken);
+
+  const cookieToken = request.cookies.get("dashboard_admin_token")?.value;
+  if (!cookieToken || (options.mutating && !isSameOriginRequest(request))) return false;
+  return isAdminToken(cookieToken);
 }

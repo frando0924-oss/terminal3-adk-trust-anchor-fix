@@ -1,6 +1,6 @@
 // WHAT THIS FILE DOES: Exposes pay_for_service (loop.ts) -- the ONLY tool in
 // this agent that can spend money. It's a thin wrapper: it generates an
-// idempotency key and delegates to t3n-client.ts's payForService(), which is
+// the caller-supplied stable idempotency key and delegates to t3n-client.ts's payForService(), which is
 // what actually calls into the Terminal 3 TEE contract. See t3n-client.ts
 // for how that connection and the pii_did-gated authorization work.
 //

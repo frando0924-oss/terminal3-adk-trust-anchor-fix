@@ -15,7 +15,6 @@
 // filesystem/shell tool, no ability to install anything at runtime (see
 // SECURITY.md).
 import { createInterface } from "node:readline/promises";
-import { randomUUID } from "node:crypto";
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
 import { searchServices } from "./tools/searchServices.js";
@@ -119,8 +118,13 @@ const tools: ChatCompletionTool[] = [
               "on-chain base-unit integer, not a dollar amount.",
           },
           payload: { type: "object", description: "request body/params, if any" },
+          idempotency_key: {
+            type: "string",
+            description:
+              "A unique key for this logical payment. Generate it once and reuse the exact same key for every retry of the same request; never generate a new key after an ambiguous result.",
+          },
         },
-        required: ["service_url", "method", "amount_usdc"],
+        required: ["service_url", "method", "amount_usdc", "idempotency_key"],
       },
     },
   },
@@ -149,12 +153,23 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<un
       result = await inspectService(String(args.service_url));
       break;
     case "pay_for_service": {
+      const idempotencyKey = typeof args.idempotency_key === "string" ? args.idempotency_key.trim() : "";
+      if (!idempotencyKey) {
+        result = { authorized: false, error: "idempotency_key is required and must remain stable across retries" };
+        await emit({
+          type: "payment_denied",
+          service_url: String(args.service_url),
+          amount_usdc: Number(args.amount_usdc),
+          reason: "missing_idempotency_key",
+        });
+        break;
+      }
       const payResult = await payForService({
         service_url: String(args.service_url),
         method: String(args.method),
         amount_usdc: Number(args.amount_usdc),
         payload: args.payload,
-        idempotency_key: randomUUID(),
+        idempotency_key: idempotencyKey,
       });
       if ("authorized" in payResult && payResult.authorized) {
         await emit({

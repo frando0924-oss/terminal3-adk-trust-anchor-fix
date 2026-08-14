@@ -9,7 +9,7 @@ import { isAdminRequest } from "@/lib/admin-auth";
 // Between-takes convenience for rehearsal -- resets the session budget only.
 // Ledger entries are never cleared; see scripts/reset-budget.ts for why.
 export async function POST(request: NextRequest) {
-  if (!isAdminRequest(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isAdminRequest(request, { mutating: true })) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     await resetBudget();
     return NextResponse.json({ reset: true });
