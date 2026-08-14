@@ -12,7 +12,7 @@
 // ActivityFeed, AuditTrail (and, in replay, AgentChat + ProviderComparison).
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type FormEvent } from "react";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { BudgetMeter } from "@/components/BudgetMeter";
 import { PolicyPanel } from "@/components/PolicyPanel";
@@ -136,12 +136,45 @@ function ReplayHome() {
 function LiveHome() {
   const [ledger, setLedger] = useState<LedgerSnapshot | null>(null);
   const [events, setEvents] = useState<any[]>([]);
+  const [needsAuth, setNeedsAuth] = useState(false);
+  const [adminToken, setAdminToken] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const [ledgerRes, eventsRes] = await Promise.all([fetch("/api/ledger"), fetch("/api/events")]);
+    if (ledgerRes.status === 401 || eventsRes.status === 401) {
+      setLedger(null);
+      setNeedsAuth(true);
+      return;
+    }
     if (ledgerRes.ok) setLedger(await ledgerRes.json());
     if (eventsRes.ok) setEvents((await eventsRes.json()).events);
   }, []);
+
+  async function signIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAuthBusy(true);
+    setAuthError(null);
+    try {
+      const response = await fetch("/api/admin/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: adminToken }),
+      });
+      if (!response.ok) {
+        setAuthError("Invalid administrator token.");
+        return;
+      }
+      setAdminToken("");
+      setNeedsAuth(false);
+      await refresh();
+    } catch {
+      setAuthError("Could not reach the dashboard session endpoint.");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
 
   useEffect(() => {
     refresh();
@@ -159,7 +192,35 @@ function LiveHome() {
         </p>
       </header>
 
-      {!ledger ? (
+      {needsAuth ? (
+        <form onSubmit={signIn} className="panel" style={{ maxWidth: 520 }}>
+          <p className="panel-title">Sign in to live dashboard</p>
+          <p style={{ color: "var(--text-secondary)", marginTop: 0 }}>
+            Enter the administrator token configured on the server. It is sent only to the session endpoint and
+            stored by the browser as an HttpOnly cookie.
+          </p>
+          <label htmlFor="dashboard-admin-token" style={{ display: "block", fontSize: 14, marginBottom: 6 }}>
+            Dashboard admin token
+          </label>
+          <input
+            id="dashboard-admin-token"
+            type="password"
+            autoComplete="current-password"
+            value={adminToken}
+            onChange={(event) => setAdminToken(event.target.value)}
+            required
+            style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--page-plane)", color: "var(--text-primary)" }}
+          />
+          {authError && <p style={{ color: "var(--status-critical)", marginBottom: 0 }}>{authError}</p>}
+          <button
+            type="submit"
+            disabled={authBusy}
+            style={{ marginTop: 14, padding: "10px 14px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface-1)", color: "var(--text-primary)", fontWeight: 600 }}
+          >
+            {authBusy ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
+      ) : !ledger ? (
         <p style={{ color: "var(--text-muted)" }}>Loading ledger...</p>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>

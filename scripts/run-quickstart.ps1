@@ -4,6 +4,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 $agentRoot = Join-Path $ProjectRoot "agent"
+$hadPriorApiKey = Test-Path Env:T3N_API_KEY
+$priorApiKey = $env:T3N_API_KEY
 $key = Read-Host "Paste your T3N API key (input is hidden)" -AsSecureString
 $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($key)
 try {
@@ -20,5 +22,10 @@ try {
     [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)
   }
   Remove-Variable plainKey -ErrorAction SilentlyContinue
-  Remove-Item Env:T3N_API_KEY -ErrorAction SilentlyContinue
+  if ($hadPriorApiKey) {
+    $env:T3N_API_KEY = $priorApiKey
+  } else {
+    Remove-Item Env:T3N_API_KEY -ErrorAction SilentlyContinue
+  }
+  Remove-Variable priorApiKey -ErrorAction SilentlyContinue
 }

@@ -190,21 +190,16 @@ you're ready to read the real ledger, and set `T3N_API_KEY`/`T3N_TENANT_DID`/`AG
 instead.)
 
 Live mode requires an admin session before the browser can poll the ledger or use the mutation
-buttons. After starting the dashboard, submit `DASHBOARD_ADMIN_TOKEN` to the server-side session
-route (the token is never placed in client JavaScript):
-
-```bash
-curl -i -X POST http://localhost:3000/api/admin/session \
-  -H 'Content-Type: application/json' \
-  -d '{"token":"<your DASHBOARD_ADMIN_TOKEN>"}'
-```
-
-The response sets an HttpOnly, `SameSite=Strict` cookie. Browser-originated reset/revoke requests
-also require same-origin provenance, which prevents a cross-site form from using that cookie.
+buttons. Set `DASHBOARD_ADMIN_TOKEN` in the server environment, open the dashboard, and use the
+live-mode **Sign in to live dashboard** form. The browser sends the token only to the server-side
+session route; the response sets an HttpOnly, `SameSite=Strict` cookie. Browser-originated
+reset/revoke requests also require same-origin provenance, which prevents a cross-site form from
+using that cookie.
 
 **On Vercel:**
 1. Import this repo, set **Root Directory** to `dashboard`.
-2. Env vars: `T3N_API_KEY`, `T3N_TENANT_DID`, `AGENT_KEY`, `CONTRACT_TAIL=guarded-commerce`.
+2. Env vars: `T3N_API_KEY`, `T3N_TENANT_DID`, `AGENT_KEY`, `DASHBOARD_ADMIN_TOKEN`,
+   `CONTRACT_TAIL=guarded-commerce`.
 3. Deploy. If the build fails resolving workspace dependencies, override the install command
    to run from the repo root (`cd .. && npm install`) rather than just `dashboard/`.
 
