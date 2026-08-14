@@ -15,6 +15,7 @@
 // filesystem/shell tool, no ability to install anything at runtime (see
 // SECURITY.md).
 import { createInterface } from "node:readline/promises";
+import { randomUUID } from "node:crypto";
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
 import { searchServices } from "./tools/searchServices.js";
@@ -153,6 +154,7 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<un
         method: String(args.method),
         amount_usdc: Number(args.amount_usdc),
         payload: args.payload,
+        idempotency_key: randomUUID(),
       });
       if ("authorized" in payResult && payResult.authorized) {
         await emit({

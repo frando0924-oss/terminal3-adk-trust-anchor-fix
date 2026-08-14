@@ -7,7 +7,6 @@
 // The ONLY tool that can move money. Everything else in the agent's tool
 // list is read-only discovery. Routes through Terminal 3 -- this process
 // never sees a Circle credential.
-import { randomUUID } from "node:crypto";
 import { payForService as t3nPayForService, type PayForServiceResult } from "../t3n-client.js";
 
 export async function payForService(args: {
@@ -15,6 +14,7 @@ export async function payForService(args: {
   method: string;
   amount_usdc: number;
   payload?: unknown;
+  idempotency_key: string;
 }): Promise<PayForServiceResult | { authorized: false; error: string }> {
   try {
     return await t3nPayForService({
@@ -22,7 +22,7 @@ export async function payForService(args: {
       method: args.method,
       amount_usdc: args.amount_usdc,
       payload: args.payload ?? {},
-      idempotency_key: randomUUID(),
+      idempotency_key: args.idempotency_key,
     });
   } catch (err) {
     // policy_denied and relay_failed resolve normally now (authorized:false +

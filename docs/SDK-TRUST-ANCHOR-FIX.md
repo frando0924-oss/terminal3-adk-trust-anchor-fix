@@ -22,7 +22,13 @@ All three client construction paths now fetch the operator-signed manifest with
 `T3nClient`. This preserves attestation verification in normal environments.
 
 For local/mock nodes only, `T3N_UNSAFE_TRUST_SERVER=1` enables the SDK's
-explicit unsafe opt-out. It is intentionally opt-in and is never the default.
+explicit unsafe opt-out. The code accepts it only when `T3N_ENVIRONMENT=sandbox`,
+`T3N_LOCAL_DEV=1`, and `NODE_ENV` is not `production`; it is never the default.
+
+The dashboard's ledger, reset, and revoke API routes also require
+`DASHBOARD_ADMIN_TOKEN`. Supply it as `Authorization: Bearer ...`,
+`x-dashboard-admin-token`, or the `dashboard_admin_token` cookie. This keeps
+credential-bearing operations behind an explicit administrator boundary.
 
 ## Verification
 
